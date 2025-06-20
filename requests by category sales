@@ -1,0 +1,19 @@
+WITH category_sales AS (
+  SELECT
+    p.category,
+    SUM(oi.amount) AS total_sales,
+    COUNT(DISTINCT oi.order_id) AS orders_count
+  FROM order_items oi
+  JOIN products p ON oi.product_id = p.id
+  GROUP BY p.category
+),
+total_all_sales AS (
+  SELECT SUM(amount) AS grand_total FROM order_items
+)
+SELECT
+  cs.category,
+  cs.total_sales,
+  ROUND(cs.total_sales::numeric / cs.orders_count, 2) AS avg_per_order,
+  ROUND((cs.total_sales / tas.grand_total) * 100, 2) AS category_share
+FROM category_sales cs, total_all_sales tas
+ORDER BY cs.total_sales DESC;
