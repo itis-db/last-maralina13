@@ -1,0 +1,30 @@
+WITH monthly_sales AS (
+  SELECT
+    TO_CHAR(o.order_date, 'YYYY-MM') AS year_month,
+    DATE_TRUNC('month', o.order_date) AS month_start,
+    SUM(oi.amount) AS total_sales
+  FROM orders o
+  JOIN order_items oi ON o.id = oi.order_id
+  GROUP BY 1, 2
+),
+with_lags AS (
+  SELECT
+    year_month,
+    total_sales,
+    LAG(total_sales) OVER (ORDER BY month_start) AS prev_month_sales,
+    LAG(total_sales, 12) OVER (ORDER BY month_start) AS prev_year_sales
+  FROM monthly_sales
+)
+SELECT
+  year_month,
+  total_sales,
+  ROUND(
+    100.0 * (total_sales - prev_month_sales) / NULLIF(prev_month_sales, 0),
+    2
+  ) AS prev_month_diff,
+  ROUND(
+    100.0 * (total_sales - prev_year_sales) / NULLIF(prev_year_sales, 0),
+    2
+  ) AS prev_year_diff
+FROM with_lags
+ORDER BY year_month;
